@@ -24,7 +24,7 @@ const params = {
 }
 
 const gtaViceCity = {
-  textureUrl: "./resources/gtavcmap.png",
+  textures: ["gtavcmap.png", "ViceCityHDMap-GTAVC.png"],
   x_gamelimit: 2000,
   y_gamelimit: 2000,
   data: gtavcJson.data,
@@ -47,7 +47,7 @@ const gtaViceCity = {
 }
 
 const gta3 = {
-  textureUrl: "./resources/gta3map.png",
+  textures: ["gta3map.png", "gta3map_colored.jpg"],
   x_gamelimit: 2000,
   y_gamelimit: 2000,
   data: gta3Json.data,
@@ -158,7 +158,9 @@ function reduceNodesType(gta, type) {
 }
 
 function createMap(gta, data) {
-  const texture = new THREE.TextureLoader().load(gta.textureUrl)
+  const texture = new THREE.TextureLoader()
+    .setPath("./resources/maps/")
+    .load(gta.textures[1])
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(params.plane.size, params.plane.size),
     new THREE.MeshBasicMaterial({ map: texture })
@@ -208,7 +210,7 @@ function createMap(gta, data) {
   console.log(index)
 }
 
-const selectedGta = gtaViceCity
+const selectedGta = [gtaViceCity, gta3][0]
 
 const ped = reduceNodesType(selectedGta, NodeType.Ped) //9514 in vc, 7207 in 3
 const road = reduceNodesType(selectedGta, NodeType.Road) //4588 in vc, 4466 in 3
