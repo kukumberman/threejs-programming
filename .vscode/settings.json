@@ -1,0 +1,8 @@
+{
+  "liveServer.settings.https": {
+    "enable": false,
+    "cert": "D:/dev/github/threejs-programming/.vscode/cert/cert.pem",
+    "key": "D:/dev/github/threejs-programming/.vscode/cert/key.pem",
+    "passphrase": ""
+  }
+}

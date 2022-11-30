@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="X-UA-Compatible"
+      content="IE=edge"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Demos</title>
+  </head>
+  <body>
+    <ul></ul>
+    <script>
+      function createLinkElement(link) {
+        return `<li><a target="_blank" href=${link}>${link}</a></li>`
+      }
+      const links = [
+        "https://immersive-web.github.io/webxr-samples/",
+        "https://threejs.org/examples/?q=vr",
+        "https://mixedreality.mozilla.org/hello-webxr/",
+        "https://cdpn.io/jason-buchheim/debug/zYqYGXM",
+        "https://felixmariotto.github.io/three-mesh-ui/#basic_setup",
+        "https://glitch.com/edit/#!/verdant-pear-triangle",
+        "https://glitch.com/edit/#!/rambunctious-brief-rowboat",
+        "https://eriksom.github.io/VirtualKeyboard-VR-Ready/threejs-vr",
+        "https://github.com/DePasqualeOrg/three-immersive-controls",
+        "https://samsunginternet.github.io/xr-locomotion-starter/index.html",
+        "https://troika-examples.netlify.app/#ui",
+      ]
+      const container = document.querySelector("ul")
+      container.innerHTML = links
+        .map((link) => createLinkElement(link))
+        .join(" ")
+    </script>
+  </body>
+</html>
