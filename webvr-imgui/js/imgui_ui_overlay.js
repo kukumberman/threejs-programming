@@ -1,3 +1,4 @@
+import * as THREE from "three"
 ;(async function () {
   {
     const localStorageStorage = new Map()
@@ -30,19 +31,26 @@
   let show_demo_window = true
 
   const canvas = document.querySelector("canvas")
-  // const gl = canvas.getContext("webgl")
-
-  const renderer = new THREE.WebGLRenderer({
+  const gl = canvas.getContext("webgl", {
+    alpha: false,
     antialias: true,
-    canvas,
-    // context: gl,
   })
 
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    context: gl,
+  })
+
+  renderer.outputEncoding = THREE.sRGBEncoding
   const scene = new THREE.Scene()
 
   const camera = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 0.1, 10000)
   camera.position.set(0, 0, 3)
   scene.add(camera)
+
+  const hi = 200
+  const wi = camera.aspect * hi
+  const rt = new THREE.WebGLRenderTarget(wi, hi)
 
   // const light = new THREE.DirectionalLight(0xffffff, 0.8)
   // light.position.set(0, 0, 350)
@@ -57,6 +65,7 @@
   const material = new THREE.MeshBasicMaterial({
     color: 0x00ff00,
     transparent: true,
+    side: THREE.DoubleSide,
     map: t,
   })
   const mesh = new THREE.Mesh(geometry, material)
@@ -82,11 +91,12 @@
     ImGui.NewFrame()
 
     ImGui.SetNextWindowPos(new ImGui.ImVec2(20, 20), ImGui.Cond.FirstUseEver)
-    ImGui.SetNextWindowSize(new ImGui.ImVec2(400, 250), ImGui.Cond.FirstUseEver)
+    ImGui.SetNextWindowSize(new ImGui.ImVec2(400, 350), ImGui.Cond.FirstUseEver)
     ImGui.Begin("Debug")
 
     ImGui.Checkbox("Show Demo Window", (value = show_demo_window) => (show_demo_window = value))
 
+    /*
     ImGui.ColorEdit4("clear color", clear_color)
     ImGui.Separator()
     ImGui.Text(`Scene: ${scene.uuid.toString()}`)
@@ -117,6 +127,16 @@
     ImGui.SliderFloat3("position", mesh.position, -100, 100)
     ImGui.SliderFloat3("rotation", mesh.rotation, -360, 360)
     ImGui.SliderFloat3("scale", mesh.scale, -2, 2)
+    */
+
+    const props = renderer.properties.get(rt.texture)
+    const texture = props.__webglTexture
+    ImGui.Image(
+      texture,
+      new ImGui.ImVec2(rt.texture.image.width, rt.texture.image.height),
+      new ImGui.ImVec2(0, 1),
+      new ImGui.ImVec2(1, 0)
+    )
 
     if (show_demo_window) {
       ImGui_Demo.ShowDemoWindow((value = show_demo_window) => (show_demo_window = value))
@@ -128,13 +148,19 @@
 
     ImGui.Render()
 
+    camera.aspect = canvas.width / canvas.height
+    camera.updateProjectionMatrix()
+
+    renderer.setSize(canvas.width, canvas.height)
     renderer.setClearColor(
       new THREE.Color(clear_color.x, clear_color.y, clear_color.z),
       clear_color.w
     )
-    camera.aspect = canvas.width / canvas.height
-    camera.updateProjectionMatrix()
-    renderer.setSize(canvas.width, canvas.height)
+
+    renderer.setRenderTarget(rt)
+    renderer.render(scene, camera)
+    renderer.setRenderTarget(null)
+
     renderer.render(scene, camera)
 
     ImGui_Impl.RenderDrawData(ImGui.GetDrawData())
