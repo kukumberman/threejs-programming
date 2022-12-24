@@ -1,5 +1,6 @@
 import * as THREE from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
+import { lerp, inverseLerp } from "./utils/math.js"
 import gtavcJson from "./resources/gtavc-custom.json" assert { type: "json" }
 import gta3Json from "./resources/gta3-transformed.json" assert { type: "json" }
 
@@ -23,23 +24,18 @@ const params = {
   bufferSize: 10_000,
 }
 
+const mapsize = params.plane.size
+
 const gtaViceCity = {
   textures: ["gtavcmap.png", "ViceCityHDMap-GTAVC.png"],
   x_gamelimit: 2000,
   y_gamelimit: 2000,
   data: gtavcJson.data,
-  mapsize: params.plane.size,
   px(x) {
-    return (
-      (x + this.x_gamelimit) / ((this.x_gamelimit * 2) / this.mapsize) -
-      this.mapsize * 0.5
-    )
+    return lerp(-mapsize * 0.5, mapsize * 0.5, inverseLerp(-this.x_gamelimit, this.x_gamelimit, x))
   },
   py(y) {
-    return (
-      (-y + this.y_gamelimit) / ((this.y_gamelimit * 2) / this.mapsize) -
-      this.mapsize * 0.5
-    )
+    return -lerp(-mapsize * 0.5, mapsize * 0.5, inverseLerp(-this.y_gamelimit, this.y_gamelimit, y))
   },
   pz(z) {
     return 0 //unknown
@@ -51,18 +47,11 @@ const gta3 = {
   x_gamelimit: 2000,
   y_gamelimit: 2000,
   data: gta3Json.data,
-  mapsize: params.plane.size,
   px(x) {
-    return (
-      (x + this.x_gamelimit) / ((this.x_gamelimit * 2) / this.mapsize) -
-      this.mapsize * 0.5
-    )
+    return lerp(-mapsize * 0.5, mapsize * 0.5, inverseLerp(-this.x_gamelimit, this.x_gamelimit, x))
   },
   py(y) {
-    return (
-      (-y + this.y_gamelimit) / ((this.y_gamelimit * 2) / this.mapsize) -
-      this.mapsize * 0.5
-    )
+    return -lerp(-mapsize * 0.5, mapsize * 0.5, inverseLerp(-this.y_gamelimit, this.y_gamelimit, y))
   },
   pz(z) {
     return 0 //unknown
