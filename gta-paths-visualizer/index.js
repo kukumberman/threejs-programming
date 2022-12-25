@@ -4,6 +4,7 @@ import { lerp, inverseLerp } from "./utils/math.js"
 import gtavcJson from "./resources/gtavc-custom.json" assert { type: "json" }
 import gta3Json from "./resources/gta3-transformed.json" assert { type: "json" }
 import Gizmos from "./utils/Gizmos.js"
+import { Group, Node } from "./Node.js"
 
 const params = {
   camera: {
@@ -104,6 +105,13 @@ canvas.addEventListener("mousemove", (event) => {
   raycaster.setFromCamera(ndc, camera)
 })
 
+canvas.addEventListener("dblclick", (event) => {
+  const tmpVector = new THREE.Vector3(0, 0, 0)
+  copyNodePositionTo(closestNode, tmpVector)
+  controls.target.copy(tmpVector)
+  controls.update()
+})
+
 onResize()
 
 const gizmos = new Gizmos(scene)
@@ -142,10 +150,55 @@ function gizmosExample() {
   gizmos.end()
 }
 
+/**
+ *
+ * @param {Node} node
+ * @param {THREE.Vector3} vector3
+ */
+function copyNodePositionTo(node, vector3) {
+  vector3.x = node.worldX
+  vector3.y = 0
+  vector3.z = node.worldY
+}
+
+function findClosestNode(nodes) {
+  const va = new THREE.Vector3()
+  const vb = new THREE.Vector3()
+
+  nodes.sort((a, b) => {
+    copyNodePositionTo(a, va)
+    copyNodePositionTo(b, vb)
+    const da = va.distanceToSquared(origin)
+    const db = vb.distanceToSquared(origin)
+    return da - db
+  })
+
+  const candidate = nodes[0]
+
+  return candidate
+}
+
+function drawGizmos() {
+  gizmos.begin()
+
+  // console.time("find")
+  const tmpVector = new THREE.Vector3()
+  closestNode = findClosestNode(allNodes)
+  copyNodePositionTo(closestNode, tmpVector)
+  // console.timeEnd("find")
+
+  gizmos.setColor("red")
+  gizmos.wireSphere(tmpVector, 0.01)
+  gizmos.line(tmpVector, origin)
+
+  gizmos.end()
+}
+
 function animate() {
   raycaster.ray.intersectPlane(plane, origin)
 
-  gizmosExample()
+  // gizmosExample()
+  drawGizmos()
 
   renderer.render(scene, camera)
 }
@@ -201,10 +254,29 @@ function reduceNodesType(gta, type) {
   }, [])
 }
 
-function createMap(gta, data) {
-  const texture = new THREE.TextureLoader()
-    .setPath("./resources/maps/")
-    .load(gta.textures[1])
+function createGroups(dataArray) {
+  const groups = dataArray.map((group) => {
+    const g = new Group()
+    const nodes = group
+      .map((node) => {
+        const n = new Node()
+        n.type = +node[0]
+        n.nextNode = +node[1]
+        n.x = node[3] / 16
+        n.y = node[4] / 16
+        n.z = node[5] / 16
+        return n
+      })
+      .filter((n) => n.isValid)
+
+    g.nodes.push(...nodes)
+    return g
+  })
+  return groups
+}
+
+function createMap(gta, groups) {
+  const texture = new THREE.TextureLoader().setPath("./resources/maps/").load(gta.textures[1])
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(params.plane.size, params.plane.size),
     new THREE.MeshBasicMaterial({ map: texture })
@@ -216,42 +288,47 @@ function createMap(gta, data) {
   scene.add(plane)
 
   let index = 0
-  data.forEach((group) => {
-    group.forEach((node) => {
-      const nodeType = node[0]
-      if (nodeType === "0") {
+
+  groups.forEach((group) => {
+    group.nodes.forEach((node) => {
+      node.worldX = gta.px(node.x)
+      node.worldY = gta.py(node.y)
+      node.worldZ = gta.pz(node.z)
+    })
+  })
+
+  groups.forEach((group) => {
+    group.nodes.forEach((node) => {
+      if (!node.isValid) {
         return
       }
-
-      const x = node[3] / 16
-      const y = node[4] / 16
-      const z = node[5] / 16
-      const nextNode = node[1]
-
       let colorName = "magenta"
-      if (nodeType == 1) {
+      if (node.isExternal) {
         colorName = params.point.externalColor
-      } else if (nodeType == 2) {
+      } else if (node.isInternal) {
         colorName = params.point.internalColor
       }
+      const ax = node.worldX
+      const ay = node.worldY
 
-      const ax = gta.px(x)
-      const ay = gta.py(y)
-
-      if (nextNode != -1) {
-        const nextNodeData = group[nextNode]
-        const bx = nextNodeData[3] / 16
-        const by = nextNodeData[4] / 16
-        createLine(ax, ay, gta.px(bx), gta.py(by))
+      if (node.hasNext) {
+        const nextNode = group.nodes[node.nextNode]
+        const bx = nextNode.worldX
+        const by = nextNode.worldY
+        createLine(ax, ay, bx, by)
       }
 
-      const pointHeight = gta.pz(z)
+      const pointHeight = node.worldZ
       createPoint(index, ax, ay, colorName, pointHeight)
+
       index++
     })
   })
+
   console.log(index)
 }
+
+let closestNode = null
 
 const selectedGta = [gtaViceCity, gta3][0]
 
@@ -259,6 +336,14 @@ const ped = reduceNodesType(selectedGta, NodeType.Ped) //9514 in vc, 7207 in 3
 const road = reduceNodesType(selectedGta, NodeType.Road) //4588 in vc, 4466 in 3
 const water = reduceNodesType(selectedGta, NodeType.Water) //630 in vc, 0 in 3
 
-createMap(selectedGta, road)
+const groups = createGroups(road)
+const allNodes = groups.reduce((result, group) => {
+  result.push(...group.nodes)
+  return result
+}, [])
+
+console.log(allNodes.length)
+
+createMap(selectedGta, groups)
 
 renderer.setAnimationLoop(animate)
