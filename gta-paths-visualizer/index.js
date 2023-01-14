@@ -3,8 +3,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 import { lerp, inverseLerp } from "./utils/math.js"
 import gtavcJson from "./resources/gtavc-custom.json" assert { type: "json" }
 import gta3Json from "./resources/gta3-transformed.json" assert { type: "json" }
-import Gizmos from "./utils/Gizmos.js"
 import { Group, Node } from "./Node.js"
+import DebugLine from "./utils/DebugLine.js"
+import DebugSphere from "./utils/DebugSphere.js"
 
 const params = {
   camera: {
@@ -80,14 +81,13 @@ controls.zoomSpeed = 3
 controls.maxDistance = 10
 camera.position.set(0, 2, 5)
 
-const gridHelper = new THREE.GridHelper(
-  params.grid.size,
-  params.grid.divisions,
-  0x00ff00,
-  0x808080
-)
+const gridHelper = new THREE.GridHelper(params.grid.size, params.grid.divisions, 0x00ff00, 0x808080)
 
 scene.add(gridHelper)
+
+const line = new DebugLine()
+const sphere = new DebugSphere(0.01)
+scene.add(line.mesh, sphere.mesh)
 
 document.body.appendChild(renderer.domElement)
 
@@ -114,41 +114,9 @@ canvas.addEventListener("dblclick", (event) => {
 
 onResize()
 
-const gizmos = new Gizmos(scene)
 const origin = new THREE.Vector3()
 const raycaster = new THREE.Raycaster()
 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0))
-
-function gizmosExample() {
-  gizmos.begin()
-
-  gizmos.line(origin, new THREE.Vector3(0, 0, 2).add(origin))
-
-  gizmos.setColor("red")
-  gizmos.line(origin, new THREE.Vector3(0, 0, 0))
-
-  gizmos.setColor("black")
-  gizmos.wireSphere(origin, 0.5)
-  gizmos.wireCube(origin, new THREE.Vector3(1, 1, 1))
-
-  let x = 0
-
-  gizmos.setColor("deeppink")
-  gizmos.wireSphere(new THREE.Vector3(x, 0, -2).add(origin), 1)
-  gizmos.wireCube(new THREE.Vector3(x, 0, -2).add(origin), new THREE.Vector3(2, 2, 2))
-
-  x += 2
-  gizmos.setColor("blue")
-  gizmos.sphere(new THREE.Vector3(x, 0, 0).add(origin), 0.5)
-  gizmos.cube(new THREE.Vector3(x, 0, -2).add(origin), new THREE.Vector3(1, 1, 1))
-
-  x += 2
-  gizmos.setColor("yellow")
-  gizmos.sphere(new THREE.Vector3(x, 0, 0).add(origin), 0.5)
-  gizmos.cube(new THREE.Vector3(x, 0, -2).add(origin), new THREE.Vector3(1, 1, 1))
-
-  gizmos.end()
-}
 
 /**
  *
@@ -178,27 +146,15 @@ function findClosestNode(nodes) {
   return candidate
 }
 
-function drawGizmos() {
-  gizmos.begin()
-
-  // console.time("find")
-  const tmpVector = new THREE.Vector3()
-  closestNode = findClosestNode(allNodes)
-  copyNodePositionTo(closestNode, tmpVector)
-  // console.timeEnd("find")
-
-  gizmos.setColor("red")
-  gizmos.wireSphere(tmpVector, 0.01)
-  gizmos.line(tmpVector, origin)
-
-  gizmos.end()
-}
-
 function animate() {
   raycaster.ray.intersectPlane(plane, origin)
 
-  // gizmosExample()
-  drawGizmos()
+  const tmpVector = new THREE.Vector3()
+  closestNode = findClosestNode(allNodes)
+  copyNodePositionTo(closestNode, tmpVector)
+
+  line.update(tmpVector, origin)
+  sphere.update(tmpVector)
 
   renderer.render(scene, camera)
 }
